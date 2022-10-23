@@ -47,7 +47,7 @@ func _set_window() -> void:
 	_timer = Timer.new()
 	_timer.name = "Resize"
 	_timer.process_mode = Node.PROCESS_MODE_ALWAYS
-	_timer.wait_time = 0.8
+	_timer.wait_time = 1.0
 
 	_timer.timeout.connect(_on_timeout.bind(_timer))
 	add_child(_timer)
@@ -65,11 +65,6 @@ func _on_timeout(timer: Timer):
 			var prev_size = DisplayServer.window_get_size()
 			var curr_size = _data["curr_size"]
 			if prev_size.x != curr_size.x or prev_size.y != curr_size.y:
-#				If (curr - prev) size is equal to 1, return
-#				For unkown reason, when I use `or` it didn't check if either x or y equal to 1
-				if (curr_size.x - prev_size.x) == 1: return
-				elif (curr_size.y - prev_size.y) == 1: return
-
 				# Check Aspect ratio at https://calculateaspectratio.com
 				print("prev size: %s, current size: %s" % [prev_size, curr_size])
 				DisplayServer.window_set_size(_data["curr_size"])
