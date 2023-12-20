@@ -9,7 +9,7 @@ script/source = "extends Node
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	print(\"default aspect ratio: %s\" % [GlobalWindow.aspectRatio])
-	GlobalWindow.resolution.connect(func(size: Vector2i, _ignoreSize: Vector2i):
+	GlobalWindow.resolution.connect(func(size: Vector2i):
 		var arr = [size.x, size.y, GlobalWindow._get_aspect_ratio(size)]
 		$Label.text = \"%s x %s | aspect ratio: %s\" % arr
 		print(\"width: %s height: %s aspect ratio: %s\" % arr)
@@ -20,8 +20,8 @@ func _ready() -> void:
 script = SubResource("GDScript_qvby6")
 
 [node name="Millie-parfait" type="Sprite2D" parent="."]
-position = Vector2(980, 540)
-scale = Vector2(1.53125, 1.5)
+position = Vector2(960, 540)
+scale = Vector2(1.5, 1.5)
 texture = ExtResource("1_vvyy6")
 
 [node name="Label" type="Label" parent="."]

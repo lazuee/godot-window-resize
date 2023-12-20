@@ -1,7 +1,7 @@
 #	https://github.com/lazuee/godot-window-resize
 extends Node2D
 
-signal resolution(size: Vector2i, ignoreSize: Vector2i)
+signal resolution(size: Vector2i)
 
 @onready var defaultSize := Vector2i(int(ProjectSettings.get_setting_with_override("display/window/size/viewport_width")), int(ProjectSettings.get_setting_with_override("display/window/size/viewport_height")))
 @onready var previousSize := Vector2i.ZERO
@@ -12,7 +12,7 @@ var ignoreSize := Vector2i.ZERO
 var _timer : Timer = null
 
 func _ready() -> void:
-	_window_set_size()
+	await _window_set_size()
 	_window_set_centered()
 	get_viewport().size_changed.connect(_window_set_size)
 
@@ -31,17 +31,17 @@ func _get_aspect_ratio(size: Vector2i) -> Vector2i:
 func _window_set_centered():
 	DisplayServer.window_set_position(DisplayServer.screen_get_size() / 2 - DisplayServer.window_get_size() / 2)
 
-func _window_set_size() -> void:
+func _window_set_size() -> Signal:
 	currentSize = DisplayServer.window_get_size()
 	if _timer != null:
 		if _timer.is_inside_tree(): _timer.start()
 		else: push_warning("Timer is not in the SceneTree")
-		return
+		return _timer.timeout
 
 	_timer = Timer.new()
 	_timer.name = "Resize"
 	_timer.process_mode = Node.PROCESS_MODE_ALWAYS
-	_timer.wait_time = 1.0
+	_timer.wait_time = 0.8
 
 	_timer.timeout.connect(func():
 		if _timer.is_stopped(): return
@@ -56,27 +56,35 @@ func _window_set_size() -> void:
 			currentSize = defaultSize / 4
 			windowSize = _window_get_size()
 			DisplayServer.window_set_min_size(windowSize)
-		
+
 		# Current window size aspect ratio is incorrect, resize it
 		if _get_aspect_ratio(windowSize) != aspectRatio:
 			if windowSize == previousSize:
 				currentSize = DisplayServer.window_get_size()
 				windowSize = _window_get_size()
-			
+
 		if windowSize != previousSize:
 			if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED:
 				# If not windowed mode, set the current window size
 				windowSize = DisplayServer.window_get_size()
-			else: previousSize = windowSize
+			else:
+				# Current window size overlap, minus the window size with screen size
+				var sizeOverlap := Vector2i(16,9)
+				var size := DisplayServer.screen_get_size() - windowSize
+				if  size.x <= sizeOverlap.x or size.y <= sizeOverlap.y:
+					currentSize = Vector2i(windowSize.x - size.x, windowSize.y - size.y)
+					windowSize = _window_get_size()
 
-			# Set current window size
-			DisplayServer.window_set_size(windowSize)
-			resolution.emit(windowSize, ignoreSize)
+				# Set current window size
+				DisplayServer.window_set_size(windowSize)
+				previousSize = windowSize
+			resolution.emit(windowSize)
 		ignoreSize = Vector2i.ZERO
 	)
 
 	add_child(_timer)
 	if _timer.is_stopped(): _timer.start()
+	return _timer.timeout
 
 func _window_fix_size(size: Vector2i):
 	@warning_ignore("integer_division")
