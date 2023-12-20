@@ -12,7 +12,7 @@ config_version=5
 
 config/name="godot-window-resize"
 run/main_scene="res://node.tscn"
-config/features=PackedStringArray("4.0", "Forward Plus")
+config/features=PackedStringArray("4.2", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
@@ -25,7 +25,8 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/window_width_override=1120
 window/size/window_height_override=630
-window/stretch/mode="viewport"
+window/stretch/mode="canvas_items"
+window/stretch/aspect="ignore"
 
 [input]
 
@@ -33,3 +34,8 @@ fullscreen={
 "deadzone": 0.5,
 "events": []
 }
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

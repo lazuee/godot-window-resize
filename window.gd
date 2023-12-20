@@ -1,80 +1,95 @@
 #	https://github.com/lazuee/godot-window-resize
-extends Node
+extends Node2D
 
+signal resolution(size: Vector2i)
+@onready var defaultSize := Vector2i(int(ProjectSettings.get_setting_with_override("display/window/size/viewport_width")), int(ProjectSettings.get_setting_with_override("display/window/size/viewport_height")))
+@onready var currentSize := DisplayServer.window_get_size()
+@onready var previousSize := DisplayServer.window_get_size()
+@onready var aspectRatio := _get_aspect_ratio(defaultSize)
 
-signal configured
-
+var ignoreSize := Vector2i.ZERO
 var _timer : Timer = null
 
-var _data := {
-	"is_called": false,
-	"curr_size": DisplayServer.window_get_size(),
-	"prev_size": DisplayServer.window_get_size(),
-}
+func _ready() -> void:
+	_window_set_size.call_deferred()
+	get_viewport().size_changed.connect(_window_set_size)
 
-#	Start!
-func _enter_tree() -> void:
-	_on_size_changed.call_deferred()
-	get_viewport().size_changed.connect(_on_size_changed)
+func _calculate_gcd(size: Vector2i) -> int:
+	while size.y != 0:
+		var temp = size.x
+		size.x = size.y
+		size.y = temp % size.y
+	return size.x
 
-func _on_size_changed() -> void:
-	var _size = _get_size(DisplayServer.window_get_size())
-#	Update current size, if it's not equal
-	if _size != Vector2i.ZERO:
-		_data["curr_size"] = _size
-		_set_window.call_deferred()
-
-#	Calculate size by aspect ratio
-func _get_size(size: Vector2i) -> Vector2i:
-	if (_data["prev_size"].x != size.x):
-		_data["prev_size"].x = size.x
-		return Vector2i(size.x, round(size.x / 16.0 * 9.0))
-	elif (_data["prev_size"].y != size.y):
-		_data["prev_size"].y = size.y
-		return Vector2i(round(size.y / 9.0 * 16.0), size.y)
-
-	return Vector2i.ZERO
-
-#	Set Window (mode/size)
-func _set_window() -> void:
+func _get_aspect_ratio(size: Vector2i) -> Vector2i:
+	var divisor = _calculate_gcd(size)
+	@warning_ignore("integer_division")
+	return Vector2i(size.x / divisor, size.y / divisor)
+	
+func _window_set_size() -> void:
+	currentSize = DisplayServer.window_get_size()
 	if _timer != null:
-#		Reset timeout, if still resizing
 		if _timer.is_inside_tree(): _timer.start()
 		else: push_warning("Timer is not in the SceneTree")
-
 		return
 
 	_timer = Timer.new()
 	_timer.name = "Resize"
 	_timer.process_mode = Node.PROCESS_MODE_ALWAYS
-	_timer.wait_time = 1.0
+	_timer.wait_time = 0.5
 
-	_timer.timeout.connect(_on_timeout.bind(_timer))
+	_timer.timeout.connect(func():
+		if _timer.is_stopped(): return
+		_timer.stop()
+
+		var windowSize := _window_get_size()
+		DisplayServer.window_set_size(windowSize)
+
+		if DisplayServer.window_get_position().y < 0:
+			DisplayServer.window_set_position(Vector2i(DisplayServer.window_get_position().x, 0))
+
+		if currentSize < defaultSize / 4:
+			currentSize = defaultSize
+			windowSize = _window_get_size()
+			DisplayServer.window_set_min_size(windowSize / 4)
+			DisplayServer.window_set_size(windowSize / 4)
+
+		resolution.emit(windowSize)
+		previousSize = windowSize
+		ignoreSize = Vector2i.ZERO
+	)
+
 	add_child(_timer)
-
 	if _timer.is_stopped(): _timer.start()
 
-func _on_timeout(timer: Timer):
-		if timer.is_stopped(): return
-		timer.stop()
+func _window_fix_size(size: Vector2i):
+	@warning_ignore("integer_division")
+	var width = round((aspectRatio.x * size.y) / aspectRatio.y)
+	@warning_ignore("integer_division")
+	var height = round((size.x * aspectRatio.y) / aspectRatio.x)
+	
+	if _get_aspect_ratio(size) != aspectRatio:
+		if _get_aspect_ratio(Vector2i(width, size.y)) == aspectRatio: size.x = width
+		elif _get_aspect_ratio(Vector2i(size.x, height)) == aspectRatio: size.y = height
+	return size
 
-#		Recommend Minimum Window size: 960,540
-#		DisplayServer.window_set_min_size(Vector2(960,540))
+func _window_get_size() -> Vector2i:
+	var windowSize := currentSize
 
-		if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
-			var prev_size = DisplayServer.window_get_size()
-			var curr_size = _data["curr_size"]
-			if prev_size.x != curr_size.x or prev_size.y != curr_size.y:
-				# Check Aspect ratio at https://calculateaspectratio.com
-				print("prev size: %s, current size: %s" % [prev_size, curr_size])
-				DisplayServer.window_set_size(_data["curr_size"])
+	if currentSize.x != previousSize.x && ignoreSize.x == 0:
+		@warning_ignore("integer_division")
+		windowSize = _window_fix_size(Vector2i(currentSize.x, currentSize.x / aspectRatio.x * aspectRatio.y))
+		print("Changed width: %s aspect ratio: %s" % [windowSize, _get_aspect_ratio(windowSize)])
+		ignoreSize.y = 1
+	elif currentSize.x == previousSize.x && ignoreSize.x == 1:
+		ignoreSize.x = 0
 
-#				Set Window centered
-#				_set_window_centered.call_deferred()
+	if currentSize.y != previousSize.y && ignoreSize.y == 0:
+		@warning_ignore("integer_division")
+		windowSize = _window_fix_size(Vector2i(currentSize.y / aspectRatio.y * aspectRatio.x, currentSize.y))
+		print("Changed height: %s aspect ratio: %s" % [windowSize, _get_aspect_ratio(windowSize)])
+		ignoreSize.x = 1
+	elif currentSize.y == previousSize.y && ignoreSize.y == 1:
+		ignoreSize.y = 0
 
-		configured.emit()
-
-func _set_window_centered():
-	var resolution: Vector2i = DisplayServer.screen_get_size()
-	var window: Window = get_tree().get_root()
-	window.position = resolution / 2 - window.size / 2
+	return windowSize
