@@ -1,22 +1,39 @@
-[gd_scene load_steps=2 format=3 uid="uid://d0ebotx8kxlpp"]
+[gd_scene load_steps=3 format=3 uid="uid://d0ebotx8kxlpp"]
 
 [ext_resource type="Texture2D" uid="uid://wwm4eblvl7pu" path="res://millie-parfait.jpg" id="1_vvyy6"]
 
-[node name="Node" type="Node"]
+[sub_resource type="GDScript" id="GDScript_qvby6"]
+script/source = "extends Node
 
-[node name="TextureRect" type="TextureRect" parent="."]
-custom_minimum_size = Vector2(1920, 1080)
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -960.0
-offset_top = -540.0
-offset_right = 960.0
-offset_bottom = 540.0
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	print(\"default aspect ratio: %s\" % [GlobalWindow.aspectRatio])
+	GlobalWindow.resolution.connect(func(size: Vector2i, _ignoreSize: Vector2i):
+		$Label.text = \"%s x %s | aspect ratio: %s\" %[size.x, size.y, GlobalWindow._get_aspect_ratio(size)]
+	)
+"
+
+[node name="Node" type="Node"]
+script = SubResource("GDScript_qvby6")
+
+[node name="Millie-parfait" type="Sprite2D" parent="."]
+position = Vector2(980, 540)
+scale = Vector2(1.53125, 1.5)
+texture = ExtResource("1_vvyy6")
+
+[node name="Label" type="Label" parent="."]
+anchors_preset = -1
+anchor_left = 0.388021
+anchor_top = 0.461574
+anchor_right = 0.611979
+anchor_bottom = 0.538426
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("1_vvyy6")
-expand_mode = 1
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 20
+theme_override_font_sizes/font_size = 60
+text = "Width x Height"
+horizontal_alignment = 1
+vertical_alignment = 1
 metadata/_edit_use_anchors_ = true
