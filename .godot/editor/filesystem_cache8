@@ -1,7 +1,0 @@
-ea4bc82a6ad023ab7ee23ee620429895
-::res://::1703095489
-icon.svg::CompressedTexture2D::672119051533760112::1703068175::1703068631::1::::<><>::
-millie-parfait.jpg::CompressedTexture2D::1590351474728994650::1703068175::1703068632::1::::<><>::
-node.tscn::PackedScene::8922327406141590769::1703069910::0::1::::<><>::uid://wwm4eblvl7pu::::res://millie-parfait.jpg
-README.md::TextFile::-1::1703069901::0::1::::<><>::
-window.gd::GDScript::-1::1703069299::0::1::::<>Node2D<>::
