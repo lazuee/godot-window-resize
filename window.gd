@@ -47,23 +47,31 @@ func _window_set_size() -> void:
 		if _timer.is_stopped(): return
 		_timer.stop()
 
-		var windowSize := _window_get_size()
-		if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
-			if DisplayServer.window_get_position().y < 0:
-				DisplayServer.window_set_position(Vector2i(DisplayServer.window_get_position().x, 0))
+		if DisplayServer.window_get_position().y < 0:
+			DisplayServer.window_set_position(Vector2i(DisplayServer.window_get_position().x, 0))
 
-			# Current window size is too small, set minimum window size
-			if currentSize < defaultSize / 4:
-				currentSize = defaultSize / 4
+		var windowSize := _window_get_size()
+		# Current window size is too small, set minimum window size
+		if currentSize < defaultSize / 4:
+			currentSize = defaultSize / 4
+			windowSize = _window_get_size()
+			DisplayServer.window_set_min_size(windowSize)
+		
+		# Current window size aspect ratio is incorrect, resize it
+		if _get_aspect_ratio(windowSize) != aspectRatio:
+			if windowSize == previousSize:
+				currentSize = DisplayServer.window_get_size()
 				windowSize = _window_get_size()
-				DisplayServer.window_set_min_size(windowSize)
+			
+		if windowSize != previousSize:
+			if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED:
+				# If not windowed mode, set the current window size
+				windowSize = DisplayServer.window_get_size()
+			else: previousSize = windowSize
+
 			# Set current window size
 			DisplayServer.window_set_size(windowSize)
-			previousSize = windowSize
-		else:
-			# If not windowed mode, get the current window size
-			windowSize = DisplayServer.window_get_size()
-		resolution.emit(windowSize, ignoreSize)
+			resolution.emit(windowSize, ignoreSize)
 		ignoreSize = Vector2i.ZERO
 	)
 
@@ -76,7 +84,6 @@ func _window_fix_size(size: Vector2i):
 	@warning_ignore("integer_division")
 	var height = round((size.x * aspectRatio.y) / aspectRatio.x)
 	
-	print([_get_aspect_ratio(size), aspectRatio])
 	if _get_aspect_ratio(size) != aspectRatio:
 		if _get_aspect_ratio(Vector2i(width, size.y)) == aspectRatio: size.x = width
 		elif _get_aspect_ratio(Vector2i(size.x, height)) == aspectRatio: size.y = height

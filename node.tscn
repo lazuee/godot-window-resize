@@ -10,7 +10,9 @@ script/source = "extends Node
 func _ready() -> void:
 	print(\"default aspect ratio: %s\" % [GlobalWindow.aspectRatio])
 	GlobalWindow.resolution.connect(func(size: Vector2i, _ignoreSize: Vector2i):
-		$Label.text = \"%s x %s | aspect ratio: %s\" %[size.x, size.y, GlobalWindow._get_aspect_ratio(size)]
+		var arr = [size.x, size.y, GlobalWindow._get_aspect_ratio(size)]
+		$Label.text = \"%s x %s | aspect ratio: %s\" % arr
+		print(\"width: %s height: %s aspect ratio: %s\" % arr)
 	)
 "
 
